@@ -3,13 +3,19 @@ import {
   AnimeData,
   AdjustedAnimeData,
   calculateAdjustedScores,
-  CONFIG,
+  CalculatorConfig,
+  DEFAULT_CONFIG,
+  createConfig,
 } from "./lib/calculator";
 import { fetchAnimeFromMAL, FetchedAnime } from "./lib/fetcher";
 import { exportToJSON } from "./lib/exporter";
+import { printTopAnime, printStatistics } from "./lib/printer";
+import { generateVisualization } from "./lib/visualizer";
 
 // Load environment variables
 dotenv.config();
+
+const CONFIG: CalculatorConfig = DEFAULT_CONFIG;
 
 function convertToAnimeData(fetchedAnime: FetchedAnime[]): AnimeData[] {
   return fetchedAnime.map((anime) => ({
@@ -22,39 +28,6 @@ function convertToAnimeData(fetchedAnime: FetchedAnime[]): AnimeData[] {
   }));
 }
 
-function printTopAnime(adjustedAnimes: AdjustedAnimeData[]): void {
-  console.log("=== Top 50 Anime by Adjusted Score ===\n");
-  console.log(
-    "Adj# | MAL# | Title                          | Year | Orig | Adj  | Diff"
-  );
-  console.log(
-    "-----|------|--------------------------------|------|------|------|------"
-  );
-
-  for (let i = 0; i < Math.min(50, adjustedAnimes.length); i++) {
-    const anime = adjustedAnimes[i];
-    const yearStr = anime.startYear?.toString() || "N/A ";
-    const titleShort =
-      anime.title.length > 30
-        ? anime.title.substring(0, 27) + "..."
-        : anime.title;
-    const diffStr =
-      anime.scoreDifference > 0
-        ? `+${anime.scoreDifference.toFixed(2)}`
-        : anime.scoreDifference.toFixed(2);
-
-    console.log(
-      `${anime.adjustedRank.toString().padStart(4)} | ${anime.rank
-        .toString()
-        .padStart(4)} | ${titleShort.padEnd(30)} | ${yearStr.padStart(
-        4
-      )} | ${anime.mean.toFixed(2)} | ${anime.adjustedScore.toFixed(
-        2
-      )} | ${diffStr.padStart(5)}`
-    );
-  }
-  console.log();
-}
 
 async function main() {
   try {
@@ -79,14 +52,19 @@ async function main() {
     // Convert to AnimeData format for calculator
     const animeList = convertToAnimeData(fetchedAnime);
 
-    // Calculate adjusted scores using shared logic
-    const adjustedAnimes = calculateAdjustedScores(animeList);
+    // Calculate adjusted scores using configurable calculator
+    const adjustedAnimes = calculateAdjustedScores(animeList, CONFIG);
 
     // Export to JSON for extension
-    exportToJSON(adjustedAnimes);
+    exportToJSON(adjustedAnimes, CONFIG);
 
-    // Print summary
-    printTopAnime(adjustedAnimes);
+    // Generate percentile visualization
+    generateVisualization(animeList, CONFIG);
+
+    // Print results using shared printer
+    const baselinePeriod = `${CONFIG.BASELINE_START_YEAR}-${CONFIG.BASELINE_END_YEAR}`;
+    printTopAnime(adjustedAnimes, 50);
+    printStatistics(adjustedAnimes, baselinePeriod);
 
     console.log("=".repeat(70));
     console.log("✓ Complete! JSON ready for GitHub repo & browser extension");

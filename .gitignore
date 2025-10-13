@@ -5,7 +5,6 @@ dist/
 # Output files - but keep adjusted-scores.json for extension
 output/*.txt
 output/*-adjusted-scores-*.txt
-output/percentile-visualization.html
 
 # Keep the JSON for GitHub
 !output/adjusted-scores.json

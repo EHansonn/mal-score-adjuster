@@ -1,17 +1,6 @@
-import * as dotenv from "dotenv";
-import { PrismaClient } from "@prisma/client";
 import * as fs from "fs";
 import * as path from "path";
-
-// Load environment variables
-dotenv.config();
-
-const prisma = new PrismaClient();
-
-// Configuration
-const MIN_SCORING_USERS = 25000;
-const START_YEAR = 2005;
-const END_YEAR = 2025;
+import type { AnimeData, CalculatorConfig } from "./calculator";
 
 interface YearPercentiles {
   year: number;
@@ -29,30 +18,36 @@ function calculatePercentile(sortedScores: number[], percentile: number): number
   return sortedScores[Math.min(index, sortedScores.length - 1)];
 }
 
-async function analyzePercentilesByYear(): Promise<YearPercentiles[]> {
-  console.log("Analyzing score percentiles by year...\n");
+export function analyzePercentilesByYear(
+  animeList: AnimeData[],
+  startYear: number = 2005,
+  endYear: number = 2025
+): YearPercentiles[] {
+  console.log("\n=== Analyzing Score Percentiles by Year ===\n");
 
   const results: YearPercentiles[] = [];
 
-  for (let year = START_YEAR; year <= END_YEAR; year++) {
-    const animes = await prisma.anime.findMany({
-      where: {
-        startYear: year,
-        numScoringUsers: {
-          gte: MIN_SCORING_USERS,
-        },
-      },
-      select: {
-        mean: true,
-      },
-    });
+  // Group anime by year
+  const animeByYear = new Map<number, AnimeData[]>();
+  for (const anime of animeList) {
+    if (anime.startYear && anime.startYear >= startYear && anime.startYear <= endYear) {
+      if (!animeByYear.has(anime.startYear)) {
+        animeByYear.set(anime.startYear, []);
+      }
+      animeByYear.get(anime.startYear)!.push(anime);
+    }
+  }
 
-    if (animes.length < 10) {
-      console.log(`${year}: Insufficient data (${animes.length} anime)`);
+  // Calculate percentiles for each year
+  for (let year = startYear; year <= endYear; year++) {
+    const yearAnime = animeByYear.get(year) || [];
+
+    if (yearAnime.length < 10) {
+      console.log(`${year}: Insufficient data (${yearAnime.length} anime)`);
       continue;
     }
 
-    const scores = animes.map((a) => a.mean).sort((a, b) => a - b);
+    const scores = yearAnime.map((a) => a.mean).sort((a, b) => a - b);
 
     results.push({
       year,
@@ -68,10 +63,42 @@ async function analyzePercentilesByYear(): Promise<YearPercentiles[]> {
     console.log(`${year}: ${scores.length} anime analyzed`);
   }
 
+  console.log(`\n✓ Analyzed ${results.length} years\n`);
   return results;
 }
 
-function generateHTMLChart(data: YearPercentiles[]): string {
+function generateTableRows(data: YearPercentiles[], baselineYearRange: string, baselineYears: number[]): string {
+  // Calculate baseline 95th percentile from the specified range
+  const baselineData = data.filter((d) => baselineYears.includes(d.year));
+  const baseline95th = baselineData.length > 0
+    ? baselineData.reduce((sum, d) => sum + d.p95, 0) / baselineData.length
+    : 0;
+
+  return data
+    .map((row) => {
+      const delta95 = row.p95 - baseline95th;
+      const deltaStr =
+        delta95 > 0 ? `+${delta95.toFixed(2)}` : delta95.toFixed(2);
+      const highlightClass =
+        Math.abs(delta95) > 0.3 ? 'class="highlight"' : "";
+
+      return `
+                <tr ${highlightClass}>
+                    <td><strong>${row.year}</strong></td>
+                    <td>${row.count}</td>
+                    <td>${row.p50.toFixed(2)}</td>
+                    <td>${row.p75.toFixed(2)}</td>
+                    <td>${row.p90.toFixed(2)}</td>
+                    <td><strong>${row.p95.toFixed(2)}</strong></td>
+                    <td>${row.p99.toFixed(2)}</td>
+                    <td>${row.max.toFixed(2)}</td>
+                    <td><strong>${deltaStr}</strong></td>
+                </tr>`;
+    })
+    .join("");
+}
+
+function generateHTMLChart(data: YearPercentiles[], baselineYearRange: string, baselineYears: number[]): string {
   const years = data.map((d) => d.year);
   const p50Data = data.map((d) => d.p50);
   const p75Data = data.map((d) => d.p75);
@@ -183,11 +210,11 @@ function generateHTMLChart(data: YearPercentiles[]): string {
                     <th>95th</th>
                     <th>99th</th>
                     <th>Max</th>
-                    <th>95th Δ from 2015</th>
+                    <th>95th Δ from ${baselineYearRange}</th>
                 </tr>
             </thead>
             <tbody>
-                ${generateTableRows(data)}
+                ${generateTableRows(data, baselineYearRange, baselineYears)}
             </tbody>
         </table>
     </div>
@@ -298,71 +325,41 @@ function generateHTMLChart(data: YearPercentiles[]): string {
 </html>`;
 }
 
-function generateTableRows(data: YearPercentiles[]): string {
-  const baseline2015 = data.find((d) => d.year === 2015);
-  const baseline95th = baseline2015?.p95 || 0;
+export function generateVisualization(
+  animeList: AnimeData[],
+  config: CalculatorConfig,
+  startYear: number = 1995,
+  endYear: number = 2025
+): void {
+  const data = analyzePercentilesByYear(animeList, startYear, endYear);
 
-  return data
-    .map((row) => {
-      const delta95 = row.p95 - baseline95th;
-      const deltaStr =
-        delta95 > 0 ? `+${delta95.toFixed(2)}` : delta95.toFixed(2);
-      const highlightClass =
-        Math.abs(delta95) > 0.3 ? 'class="highlight"' : "";
-
-      return `
-                <tr ${highlightClass}>
-                    <td><strong>${row.year}</strong></td>
-                    <td>${row.count}</td>
-                    <td>${row.p50.toFixed(2)}</td>
-                    <td>${row.p75.toFixed(2)}</td>
-                    <td>${row.p90.toFixed(2)}</td>
-                    <td><strong>${row.p95.toFixed(2)}</strong></td>
-                    <td>${row.p99.toFixed(2)}</td>
-                    <td>${row.max.toFixed(2)}</td>
-                    <td><strong>${deltaStr}</strong></td>
-                </tr>`;
-    })
-    .join("");
-}
-
-async function main() {
-  try {
-    console.log("=== MAL Score Percentile Visualization ===\n");
-
-    const data = await analyzePercentilesByYear();
-
-    if (data.length === 0) {
-      console.error("No data collected!");
-      process.exit(1);
-    }
-
-    // Generate HTML chart
-    const html = generateHTMLChart(data);
-
-    // Save to output directory
-    const outputDir = path.join(process.cwd(), "output");
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
-
-    const outputPath = path.join(outputDir, "percentile-visualization.html");
-    fs.writeFileSync(outputPath, html, "utf-8");
-
-    console.log("\n✓ Visualization generated successfully!");
-    console.log(`📊 Open this file in your browser: ${outputPath}`);
-    console.log(
-      "\nThe chart shows how score percentiles have changed over time."
-    );
-    console.log(
-      "Rising lines = score inflation (same percentile rank = higher score)\n"
-    );
-  } catch (error) {
-    console.error("\n✗ Error:", error);
-    process.exit(1);
-  } finally {
-    await prisma.$disconnect();
+  if (data.length === 0) {
+    console.log("⚠ No percentile data collected - skipping visualization");
+    return;
   }
-}
 
-main();
+  // Create baseline year range string and array
+  const baselineYearRange = config.BASELINE_START_YEAR === config.BASELINE_END_YEAR
+    ? `${config.BASELINE_START_YEAR}`
+    : `${config.BASELINE_START_YEAR}-${config.BASELINE_END_YEAR}`;
+
+  const baselineYears: number[] = [];
+  for (let year = config.BASELINE_START_YEAR; year <= config.BASELINE_END_YEAR; year++) {
+    baselineYears.push(year);
+  }
+
+  // Generate HTML chart
+  const html = generateHTMLChart(data, baselineYearRange, baselineYears);
+
+  // Save to output directory
+  const outputDir = path.join(process.cwd(), "output");
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+
+  const outputPath = path.join(outputDir, "percentile-visualization.html");
+  fs.writeFileSync(outputPath, html, "utf-8");
+
+  console.log("✓ Percentile visualization generated!");
+  console.log(`📊 Open this file in your browser: ${outputPath}\n`);
+}
