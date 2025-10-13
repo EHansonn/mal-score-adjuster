@@ -17,6 +17,38 @@ I made this in like an hour, the prisma stuff was just reused from an old projec
 
 See how the scores are modified [https://ehansonn.github.io/mal-score-adjuster/output/percentile-visualization.html](https://ehansonn.github.io/mal-score-adjuster/output/percentile-visualization.html)
 
+## How It Works
+
+The MAL Score Adjuster uses a **percentile-based normalization system** to correct for score inflation over time. Here's the detailed process:
+
+### 1. **Baseline Period Selection**
+You choose a date range (e.g., 2010) that you consider to have "accurate" scoring standards. This becomes your reference baseline.
+
+### 2. **Percentile Mapping Algorithm**
+For each anime, the tool:
+- **Calculates the anime's percentile rank** within its release year (e.g., "this 2015 anime was in the 85th percentile of 2015 anime")
+- **Maps that percentile to the baseline period** (e.g., "85th percentile in 2015 → what score was 85th percentile in 2010?")
+- **Assigns the adjusted score** based on the baseline distribution
+
+### 3. **High-Precision Percentile Calculation**
+The algorithm uses:
+- **0.1% precision percentile lookup tables** for maximum accuracy
+- **Linear interpolation** between percentile values
+- **Hard caps** at 95th, 99th, and 100th percentiles to prevent extreme adjustments
+
+### 4. **Inflation-Only Correction**
+By default, the tool only **decreases scores** (corrects inflation), never increases them. This means:
+- A 2015 anime with 8.5/10 might become 7.5/10 (using 2010 standards)
+- But a 2015 anime with 6.0/10 would stay 6.0/10 (no artificial inflation)
+
+### 5. **Example**
+If you set 2010 as your baseline:
+- **2010 anime**: Scores stay the same (this is your reference)
+- **2015 anime**: An 8.5/10 that was 85th percentile in 2015 gets adjusted to whatever score was 85th percentile in 2010 (maybe 7.8/10)
+- **2020 anime**: An 8.8/10 that was 80th percentile in 2020 gets adjusted to whatever score was 80th percentile in 2010 (maybe 7.5/10)
+
+This creates a **consistent scoring standard** across all time periods, eliminating the inflation bias that has accumulated over the years on MyAnimeList. 
+
 
 ## Setup
 
