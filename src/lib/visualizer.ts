@@ -279,7 +279,7 @@ function generateHTMLChart(data: YearPercentiles[], baselineYearRange: string, b
         <h3>📈 Key Insights</h3>
         <p><strong>What this shows:</strong> How the same percentile rank (e.g., top 5% = 95th percentile)
         has been getting higher scores over time, indicating score inflation.</p>
-        <p><strong>Example:</strong> If the 95th percentile was 8.5 in 2015 but is 9.2 in 2024,
+        <p><strong>Example:</strong> If the 95th percentile was 8.22 in 2010 but is 8.65 in 2025,
         that's a clear sign of inflation - the "top tier" threshold has moved up.</p>
     </div>
 
