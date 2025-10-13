@@ -113,7 +113,7 @@ function generateTableRows(data: YearPercentiles[], baselineYearRange: string, b
     .join("");
 }
 
-function generateHTMLChart(data: YearPercentiles[], baselineYearRange: string, baselineYears: number[]): string {
+function generateHTMLChart(data: YearPercentiles[], baselineYearRange: string, baselineYears: number[], minScoringUsers: number, generatedDate: string): string {
   const years = data.map((d) => d.year);
   const minData = data.map((d) => d.min);
   const p50Data = data.map((d) => d.p50);
@@ -241,7 +241,8 @@ function generateHTMLChart(data: YearPercentiles[], baselineYearRange: string, b
 </head>
 <body>
     <h1>📊 MAL Score Percentiles Over Time</h1>
-    <p class="subtitle">Analyzing score inflation trends (Anime with 25k+ scoring users)</p>
+    <p class="subtitle">Analyzing score inflation trends (Anime with ${minScoringUsers.toLocaleString()}+ scoring users)</p>
+    <p class="subtitle" style="font-size: 0.9em; color: #999;">Last updated: ${generatedDate}</p>
 
     <div class="extension-box">
         <h3>🔧 Install the Browser Extension</h3>
@@ -499,8 +500,13 @@ export function generateVisualization(
     baselineYears.push(year);
   }
 
-  // Generate HTML chart
-  const html = generateHTMLChart(data, baselineYearRange, baselineYears);
+  // Generate HTML chart with current date
+  const currentDate = new Date().toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+  const html = generateHTMLChart(data, baselineYearRange, baselineYears, config.MIN_SCORING_USERS, currentDate);
 
   // Save to output directory
   const outputDir = path.join(process.cwd(), "output");
