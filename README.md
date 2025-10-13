@@ -47,8 +47,22 @@ If you set 2010 as your baseline:
 - **2015 anime**: An 8.5/10 that was 85th percentile in 2015 gets adjusted to whatever score was 85th percentile in 2010 (maybe 7.8/10)
 - **2020 anime**: An 8.8/10 that was 80th percentile in 2020 gets adjusted to whatever score was 80th percentile in 2010 (maybe 7.5/10)
 
-This creates a **consistent scoring standard** across all time periods, eliminating the inflation bias that has accumulated over the years on MyAnimeList. 
+This creates a **consistent scoring standard** across all time periods, eliminating the inflation bias that has accumulated over the years on MyAnimeList.
 
+## What's Next
+
+### Sequel Score Normalization
+I'm planning to add an option to recalculate scores for anime sequels and multi-season series. Here's the problem:
+
+**The Sequel Inflation Effect**: When a show has multiple seasons (like Attack on Titan with 4 seasons), the average score tends to increase over time. This happens because:
+
+- **Audience Filtering**: People who didn't like Season 1 drop out, leaving only the dedicated fans
+- **Self-Selection Bias**: Only viewers who enjoyed the previous seasons continue watching
+- **Hype Accumulation**: Later seasons benefit from established fanbase and anticipation
+
+**The Solution**: The tool will analyze sequel score patterns and normalize them based on the original season's performance, ensuring that a show's quality is judged consistently across all seasons rather than being artificially inflated by its most dedicated viewers.
+
+This will help identify which sequels genuinely improved versus those that simply retained their most enthusiastic audience.
 
 ## Setup
 
