@@ -36,7 +36,7 @@ jobs:
           mkdir -p _site
           cp README.md _site/
           if [ -f output/percentile-visualization.html ]; then
-            cp output/percentile-visualization.html _site/
+            cp output/percentile-visualization.html _site/index.html
           fi
 
       - name: Upload artifact
