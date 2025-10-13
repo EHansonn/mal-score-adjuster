@@ -11,6 +11,8 @@ on:
 jobs:
   update-scores:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Allow pushing changes
 
     steps:
       - name: Checkout repository
