@@ -1,0 +1,29 @@
+{
+  "name": "mal-score-adjuster",
+  "version": "1.0.0",
+  "description": "Fetch data from MyAnimeList API",
+  "main": "dist/index.js",
+  "scripts": {
+    "seed": "ts-node src/seed.ts",
+    "main": "ts-node src/index.ts",
+    "build": "tsc",
+    "start": "node dist/seed.js",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "prisma": "^5.22.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "dotenv": "^16.3.1"
+  }
+}

@@ -1,0 +1,36 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Anime {
+  id               Int      @id
+  title            String
+  mediumPicture    String?  @map("medium_picture")
+  largePicture     String?  @map("large_picture")
+  mean             Float
+  nsfw             String
+  mediaType        String   @map("media_type")
+  numListUsers     Int      @map("num_list_users")
+  numScoringUsers  Int      @map("num_scoring_users")
+  popularity       Int
+  status           String
+  rank             Int
+  startSeason      String?  @map("start_season")
+  startYear        Int?     @map("start_year")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("anime")
+  @@index([rank])
+  @@index([mean])
+  @@index([popularity])
+  @@index([startYear])
+}
