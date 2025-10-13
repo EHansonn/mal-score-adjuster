@@ -3,22 +3,25 @@
   "manifest_version": 2,
   "name": "Mal Score Adjuster",
   "version": "1.2",
-  "permissions": ["scripting", "tabs"],
-  "homepage_url": "https://github.com/EHansonn/mal-score-adjuster",
-  "icons": {
-    "48": "icons/border-48.png",
-    "96": "icons/border-48.png"
-  },
-  "browser_action": {
-    "default_icon": {
-      "48": "icons/border-48.png"
-    },
-    "default_title": "MAL Score Adjuster"
-  },
-  "host_permissions": [
-    "https://raw.githubusercontent.com/EHansonn/mal-score-adjuster/main/output/adjusted-scores.json",
+  "permissions": [
+    "https://raw.githubusercontent.com/*",
     "https://myanimelist.net/*"
   ],
+  "homepage_url": "https://github.com/EHansonn/mal-score-adjuster",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "mal-score-adjuster@ehansonn",
+      "update_url": "https://raw.githubusercontent.com/EHansonn/mal-score-adjuster/main/extension/updates.json"
+    }
+  },
+  "icons": {
+    "48": "icons/border-48.png",
+    "96": "icons/border-96.png"
+  },
+  "browser_action": {
+    "default_icon": "icons/border-48.png",
+    "default_title": "MAL Score Adjuster"
+  },
   "background": {
     "scripts": ["background.js"],
     "persistent": false

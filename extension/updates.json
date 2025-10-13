@@ -1,0 +1,12 @@
+{
+  "addons": {
+    "mal-score-adjuster@ehansonn": {
+      "updates": [
+        {
+          "version": "1.2",
+          "update_link": "https://github.com/EHansonn/mal-score-adjuster/releases/download/release/mal-score-adjuster-1.2.xpi"
+        }
+      ]
+    }
+  }
+}

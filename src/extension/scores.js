@@ -89,20 +89,40 @@ function applyScoreToElement(element, data, isDetailView = false) {
   const originalFormatted = originalScore.toFixed(2);
 
   if (isDetailView) {
-    // For detail view, create a more complex HTML structure
-    element.innerHTML = `
-      <i class="fa-regular fa-star mr4"></i>
-      <span style="color: ${color};" 
-            data-original="${originalFormatted}" 
-            data-adjusted="${adjustedFormatted}"
-            onmouseover="this.textContent=this.dataset.original; this.style.color='${COLORS.HOVER}';" 
-            onmouseout="this.textContent=this.dataset.adjusted; this.style.color='${color}';">
-        ${adjustedFormatted}
-      </span>
-      <span style="color:#999;font-size:10px;margin-left:3px;" title="Original MAL score">
-        (${originalFormatted})
-      </span>
-    `;
+    // For detail view, use safe DOM manipulation instead of innerHTML
+    element.textContent = ''; // Clear existing content
+
+    // Create star icon
+    const icon = document.createElement('i');
+    icon.className = 'fa-regular fa-star mr4';
+    element.appendChild(icon);
+
+    // Create adjusted score span
+    const adjustedSpan = document.createElement('span');
+    adjustedSpan.style.color = color;
+    adjustedSpan.textContent = adjustedFormatted;
+    adjustedSpan.setAttribute('data-original', originalFormatted);
+    adjustedSpan.setAttribute('data-adjusted', adjustedFormatted);
+
+    // Add hover handlers
+    adjustedSpan.onmouseover = function() {
+      this.textContent = this.dataset.original;
+      this.style.color = COLORS.HOVER;
+    };
+    adjustedSpan.onmouseout = function() {
+      this.textContent = this.dataset.adjusted;
+      this.style.color = color;
+    };
+    element.appendChild(adjustedSpan);
+
+    // Create original score span
+    const originalSpan = document.createElement('span');
+    originalSpan.style.color = '#999';
+    originalSpan.style.fontSize = '10px';
+    originalSpan.style.marginLeft = '3px';
+    originalSpan.title = 'Original MAL score';
+    originalSpan.textContent = `(${originalFormatted})`;
+    element.appendChild(originalSpan);
   } else {
     // For ranking and other views, just update the text content
     element.textContent = adjustedFormatted;
