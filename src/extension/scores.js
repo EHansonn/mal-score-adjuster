@@ -1,8 +1,3 @@
-/**
- * MAL Score Adjuster Extension
- * Refactored for better maintainability and readability
- */
-
 console.log('[MAL Score Adjuster] Content script loaded');
 
 
