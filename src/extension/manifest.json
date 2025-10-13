@@ -1,0 +1,27 @@
+{
+
+  "description": "Adjusts the scores on MyAnimeList to show the original scores and the adjusted scores.",
+  "manifest_version": 2,
+  "name": "Mal Score Adjuster",
+  "version": "1.0",
+  "permissions": ["scripting", "tabs"],
+  "homepage_url": "https://github.com/EHansonn/mal-score-adjuster",
+  "icons": {
+    "48": "icons/border-48.png"
+  },
+  "host_permissions": [
+    "https://raw.githubusercontent.com/EHansonn/mal-score-adjuster/main/output/adjusted-scores.json",
+    "https://myanimelist.net/*"
+  ],
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://myanimelist.net/*"],
+      "js": ["scores.js"]
+    }
+  ]
+
+}

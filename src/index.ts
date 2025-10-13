@@ -2,24 +2,18 @@ import * as dotenv from "dotenv";
 import { PrismaClient } from "@prisma/client";
 import * as fs from "fs";
 import * as path from "path";
+import { exportToJSON } from "./lib/exporter";
+import {
+  CONFIG,
+  AnimeData,
+  AdjustedAnimeData,
+  calculateAdjustedScores
+} from "./lib/calculator";
 
 // Load environment variables
 dotenv.config();
 
 const prisma = new PrismaClient();
-
-// Configuration for outlier filtering
-const MIN_SCORING_USERS = 25000; // Minimum number of users who scored the anime
-const BASELINE_START_YEAR = 2012; // Start of baseline period (what scores should represent)
-const BASELINE_END_YEAR = 2014; // End of baseline period
-
-// Hard caps based on actual baseline percentiles from visualization
-// 2012-2014 average: 95th = 8.29, 99th = 8.69, max = 8.88
-const PERCENTILE_CAPS = {
-  95: 8.29,  // 95th percentile cap
-  99: 8.69,  // 99th percentile cap
-  100: 8.88  // Absolute maximum
-};
 
 interface YearStats {
   year: number;
@@ -28,18 +22,6 @@ interface YearStats {
   count: number;
   adjustmentFactor: number;
   scores: number[]; // Store all scores for percentile calculation
-}
-
-interface AnimeWithAdjustedScore {
-  id: number;
-  title: string;
-  rank: number;
-  originalScore: number;
-  adjustedScore: number;
-  adjustedRank?: number;
-  startYear: number | null;
-  numScoringUsers: number;
-  scoreDifference: number;
 }
 
 function calculateMedian(scores: number[]): number {
@@ -76,7 +58,7 @@ async function calculateYearStatistics(): Promise<{ yearStatsMap: Map<number, Ye
   const animes = await prisma.anime.findMany({
     where: {
       numScoringUsers: {
-        gte: MIN_SCORING_USERS,
+        gte: CONFIG.MIN_SCORING_USERS,
       },
       startYear: {
         not: null,
@@ -120,10 +102,10 @@ async function calculateYearStatistics(): Promise<{ yearStatsMap: Map<number, Ye
     });
   }
 
-  // Calculate baseline median from the baseline period (2000-2015)
+  // Calculate baseline median from the baseline period
   const baselineScores: number[] = [];
   for (const [year, scores] of scoresByYear.entries()) {
-    if (year >= BASELINE_START_YEAR && year <= BASELINE_END_YEAR) {
+    if (year >= CONFIG.BASELINE_START_YEAR && year <= CONFIG.BASELINE_END_YEAR) {
       baselineScores.push(...scores);
     }
   }
@@ -132,7 +114,7 @@ async function calculateYearStatistics(): Promise<{ yearStatsMap: Map<number, Ye
     ? calculateMedian(baselineScores)
     : 7.30; // Fallback if no baseline data
 
-  console.log(`Baseline median (${BASELINE_START_YEAR}-${BASELINE_END_YEAR}): ${baselineMedian.toFixed(2)}`);
+  console.log(`Baseline median (${CONFIG.BASELINE_START_YEAR}-${CONFIG.BASELINE_END_YEAR}): ${baselineMedian.toFixed(2)}`);
   console.log(`Baseline sample size: ${baselineScores.length} anime\n`);
 
   // Calculate adjustment factors (still useful for display purposes)
@@ -143,19 +125,11 @@ async function calculateYearStatistics(): Promise<{ yearStatsMap: Map<number, Ye
   return { yearStatsMap, baselineScores };
 }
 
-async function calculateAdjustedScores(
-  yearStatsMap: Map<number, YearStats>,
-  baselineScores: number[]
-): Promise<AnimeWithAdjustedScore[]> {
-  console.log("\n=== Calculating Adjusted Scores (Percentile Rescaling) ===\n");
-  console.log("Logic: Find percentile rank in release year, then map to that percentile's score in baseline period\n");
-
-  const sortedBaselineScores = baselineScores.slice().sort((a, b) => a - b);
-
+async function fetchAnimeFromDatabase(): Promise<AnimeData[]> {
   const animes = await prisma.anime.findMany({
     where: {
       numScoringUsers: {
-        gte: MIN_SCORING_USERS,
+        gte: CONFIG.MIN_SCORING_USERS,
       },
     },
     select: {
@@ -171,67 +145,19 @@ async function calculateAdjustedScores(
     },
   });
 
-  const results: AnimeWithAdjustedScore[] = [];
-
-  for (const anime of animes) {
-    let adjustedScore = anime.mean;
-    let percentileInYear = 50; // default
-
-    // Step 1: Find what percentile this anime is in its release year
-    if (anime.startYear && yearStatsMap.has(anime.startYear)) {
-      const yearStats = yearStatsMap.get(anime.startYear)!;
-      percentileInYear = calculatePercentile(yearStats.scores, anime.mean);
-    } else if (anime.startYear) {
-      // For years without data, estimate percentile from the score itself
-      // This assumes the score distribution follows a similar pattern
-      if (anime.mean >= 8.5) {
-        percentileInYear = 85 + ((anime.mean - 8.5) / 1.5) * 15;
-      } else if (anime.mean >= 8.0) {
-        percentileInYear = 70 + ((anime.mean - 8.0) / 0.5) * 15;
-      } else if (anime.mean >= 7.5) {
-        percentileInYear = 50 + ((anime.mean - 7.5) / 0.5) * 20;
-      } else if (anime.mean >= 7.0) {
-        percentileInYear = 30 + ((anime.mean - 7.0) / 0.5) * 20;
-      } else if (anime.mean >= 6.5) {
-        percentileInYear = 15 + ((anime.mean - 6.5) / 0.5) * 15;
-      } else {
-        percentileInYear = (anime.mean / 6.5) * 15;
-      }
-    }
-
-    // Step 2: Map that percentile to the baseline period's score distribution
-    // This is the key: a 95th percentile anime in 2024 gets the score that
-    // represented 95th percentile in 2012-2014
-    adjustedScore = getScoreAtPercentile(sortedBaselineScores, percentileInYear);
-
-    // Step 3: Apply hard caps based on actual baseline percentiles
-    // This ensures scores don't exceed what was possible in the baseline period
-    if (percentileInYear >= 99) {
-      // Top 1% - cap at 99th percentile or max
-      adjustedScore = Math.min(adjustedScore, PERCENTILE_CAPS[100]);
-    } else if (percentileInYear >= 95) {
-      // Top 5% - cap at 95th percentile
-      adjustedScore = Math.min(adjustedScore, PERCENTILE_CAPS[95]);
-    }
-
-    results.push({
-      id: anime.id,
-      title: anime.title,
-      rank: anime.rank,
-      originalScore: anime.mean,
-      adjustedScore: Math.round(adjustedScore * 100) / 100, // Round to 2 decimals
-      startYear: anime.startYear,
-      numScoringUsers: anime.numScoringUsers,
-      scoreDifference: Math.round((adjustedScore - anime.mean) * 100) / 100,
-    });
-  }
-
-  return results;
+  return animes.map(anime => ({
+    id: anime.id,
+    title: anime.title,
+    rank: anime.rank,
+    mean: anime.mean,
+    startYear: anime.startYear,
+    numScoringUsers: anime.numScoringUsers,
+  }));
 }
 
 function writeResultsToFile(
   yearStatsMap: Map<number, YearStats>,
-  adjustedAnimes: AnimeWithAdjustedScore[]
+  adjustedAnimes: AdjustedAnimeData[]
 ): void {
   const outputDir = path.join(process.cwd(), "output");
 
@@ -249,8 +175,8 @@ function writeResultsToFile(
   output += "MAL SCORE INFLATION ANALYZER - RESULTS\n";
   output += "=".repeat(80) + "\n\n";
   output += `Generated: ${new Date().toLocaleString()}\n`;
-  output += `Minimum scoring users: ${MIN_SCORING_USERS.toLocaleString()}\n`;
-  output += `Baseline period: ${BASELINE_START_YEAR}-${BASELINE_END_YEAR}\n`;
+  output += `Minimum scoring users: ${CONFIG.MIN_SCORING_USERS.toLocaleString()}\n`;
+  output += `Baseline period: ${CONFIG.BASELINE_START_YEAR}-${CONFIG.BASELINE_END_YEAR}\n`;
   output += `Total anime analyzed: ${adjustedAnimes.length.toLocaleString()}\n\n`;
 
   // Year statistics
@@ -283,7 +209,7 @@ function writeResultsToFile(
       ? `+${anime.scoreDifference.toFixed(2)}`
       : anime.scoreDifference.toFixed(2);
 
-    output += `${(i + 1).toString().padStart(8)} | ${anime.rank.toString().padStart(8)} | ${anime.title.padEnd(60)} | ${yearStr.padStart(4)} | ${anime.originalScore.toFixed(2).padStart(8)} | ${anime.adjustedScore.toFixed(2).padStart(8)} | ${diffStr.padStart(6)} | ${anime.numScoringUsers.toLocaleString().padStart(13)}\n`;
+    output += `${(i + 1).toString().padStart(8)} | ${anime.rank.toString().padStart(8)} | ${anime.title.padEnd(60)} | ${yearStr.padStart(4)} | ${anime.mean.toFixed(2).padStart(8)} | ${anime.adjustedScore.toFixed(2).padStart(8)} | ${diffStr.padStart(6)} | ${anime.numScoringUsers.toLocaleString().padStart(13)}\n`;
   }
 
   // Summary statistics
@@ -291,7 +217,7 @@ function writeResultsToFile(
   output += "SUMMARY STATISTICS\n";
   output += "=".repeat(80) + "\n\n";
 
-  const avgOriginal = adjustedAnimes.reduce((sum, a) => sum + a.originalScore, 0) / adjustedAnimes.length;
+  const avgOriginal = adjustedAnimes.reduce((sum, a) => sum + a.mean, 0) / adjustedAnimes.length;
   const avgAdjusted = adjustedAnimes.reduce((sum, a) => sum + a.adjustedScore, 0) / adjustedAnimes.length;
   const avgDiff = avgAdjusted - avgOriginal;
 
@@ -308,7 +234,7 @@ function writeResultsToFile(
     .slice(0, 20);
 
   for (const anime of biggestDecreases) {
-    output += `${anime.title} (${anime.startYear || "N/A"}): ${anime.originalScore.toFixed(2)} → ${anime.adjustedScore.toFixed(2)} (${anime.scoreDifference.toFixed(2)})\n`;
+    output += `${anime.title} (${anime.startYear || "N/A"}): ${anime.mean.toFixed(2)} → ${anime.adjustedScore.toFixed(2)} (${anime.scoreDifference.toFixed(2)})\n`;
   }
 
   output += "\n";
@@ -320,7 +246,7 @@ function writeResultsToFile(
     .slice(0, 20);
 
   for (const anime of biggestIncreases) {
-    output += `${anime.title} (${anime.startYear || "N/A"}): ${anime.originalScore.toFixed(2)} → ${anime.adjustedScore.toFixed(2)} (${anime.scoreDifference > 0 ? '+' : ''}${anime.scoreDifference.toFixed(2)})\n`;
+    output += `${anime.title} (${anime.startYear || "N/A"}): ${anime.mean.toFixed(2)} → ${anime.adjustedScore.toFixed(2)} (${anime.scoreDifference > 0 ? '+' : ''}${anime.scoreDifference.toFixed(2)})\n`;
   }
 
   fs.writeFileSync(outputPath, output, "utf-8");
@@ -330,10 +256,10 @@ function writeResultsToFile(
 async function main() {
   try {
     console.log("=== MAL Score Inflation Analyzer ===");
-    console.log(`Minimum scoring users: ${MIN_SCORING_USERS.toLocaleString()}`);
-    console.log(`Baseline period: ${BASELINE_START_YEAR}-${BASELINE_END_YEAR}\n`);
+    console.log(`Minimum scoring users: ${CONFIG.MIN_SCORING_USERS.toLocaleString()}`);
+    console.log(`Baseline period: ${CONFIG.BASELINE_START_YEAR}-${CONFIG.BASELINE_END_YEAR}\n`);
 
-    // Step 1: Calculate year-based statistics
+    // Step 1: Calculate year-based statistics (for display purposes)
     const { yearStatsMap, baselineScores } = await calculateYearStatistics();
 
     // Display year statistics
@@ -347,8 +273,9 @@ async function main() {
       );
     }
 
-    // Step 2: Calculate adjusted scores
-    const adjustedAnimes = await calculateAdjustedScores(yearStatsMap, baselineScores);
+    // Step 2: Fetch anime data and calculate adjusted scores using shared logic
+    const animeList = await fetchAnimeFromDatabase();
+    const adjustedAnimes = calculateAdjustedScores(animeList);
 
     // Step 2.5: Write results to file
     writeResultsToFile(yearStatsMap, adjustedAnimes);
@@ -391,6 +318,9 @@ async function main() {
 
     console.log(`\n✓ Successfully saved adjusted scores and ranks to database!`);
 
+    // Step 2.7: Export to JSON for extension
+    exportToJSON(sortedByAdjusted);
+
     // Step 3: Display top 200 by original MAL rank
     console.log("\n\n=== Top 200 Anime: Original vs Adjusted Scores ===\n");
     console.log("Rank | Title (Year) | Original | Adjusted | Diff | Users");
@@ -408,7 +338,7 @@ async function main() {
         : anime.scoreDifference.toFixed(2);
 
       console.log(
-        `${anime.rank.toString().padStart(4)} | ${(titleDisplay + " " + yearStr).padEnd(45)} | ${anime.originalScore.toFixed(2)}     | ${anime.adjustedScore.toFixed(2)}     | ${diffStr.padStart(5)} | ${(anime.numScoringUsers / 1000).toFixed(0)}K`
+        `${anime.rank.toString().padStart(4)} | ${(titleDisplay + " " + yearStr).padEnd(45)} | ${anime.mean.toFixed(2)}     | ${anime.adjustedScore.toFixed(2)}     | ${diffStr.padStart(5)} | ${(anime.numScoringUsers / 1000).toFixed(0)}K`
       );
     }
 
@@ -429,7 +359,7 @@ async function main() {
         : anime.scoreDifference.toFixed(2);
 
       console.log(
-        `${(i + 1).toString().padStart(3)} | ${anime.rank.toString().padStart(4)} | ${(titleDisplay + " " + yearStr).padEnd(40)} | ${anime.originalScore.toFixed(2)}     | ${anime.adjustedScore.toFixed(2)}     | ${diffStr}`
+        `${(i + 1).toString().padStart(3)} | ${anime.rank.toString().padStart(4)} | ${(titleDisplay + " " + yearStr).padEnd(40)} | ${anime.mean.toFixed(2)}     | ${anime.adjustedScore.toFixed(2)}     | ${diffStr}`
       );
     }
 

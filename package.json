@@ -6,6 +6,7 @@
   "scripts": {
     "seed": "ts-node src/seed.ts",
     "main": "ts-node src/index.ts",
+    "standalone": "ts-node src/generate-adjusted-scores-standalone.ts",
     "build": "tsc",
     "start": "node dist/seed.js",
     "db:generate": "prisma generate",

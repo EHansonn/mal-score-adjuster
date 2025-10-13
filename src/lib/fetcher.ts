@@ -143,7 +143,6 @@ export async function fetchAnimeFromMAL(
 
       // Rate limiting
       if (offset < maxEntries) {
-        console.log(`Waiting ${rateLimit}ms before next batch...`);
         await new Promise((resolve) => setTimeout(resolve, rateLimit));
       }
     } catch (error) {
