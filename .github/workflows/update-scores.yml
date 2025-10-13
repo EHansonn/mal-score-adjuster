@@ -35,7 +35,7 @@ jobs:
       - name: Check if scores changed
         id: check_changes
         run: |
-          if git diff --quiet output/adjusted-scores.json; then
+          if git diff --quiet output/adjusted-scores.json output/percentile-visualization.html; then
             echo "changed=false" >> $GITHUB_OUTPUT
           else
             echo "changed=true" >> $GITHUB_OUTPUT
@@ -46,7 +46,7 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add output/adjusted-scores.json
+          git add output/adjusted-scores.json output/percentile-visualization.html
           git commit -m "Update adjusted scores - $(date +'%Y-%m-%d')"
           git push
 
