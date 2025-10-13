@@ -64,6 +64,8 @@ I'm planning to add an option to recalculate scores for anime sequels and multi-
 
 This will help identify which sequels genuinely improved versus those that simply retained their most enthusiastic audience.
 
+
+
 ## Setup
 
 ### 1. Install Dependencies
