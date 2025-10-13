@@ -534,11 +534,16 @@ export function generateVisualization(
     baselineYears.push(year);
   }
 
-  // Generate HTML chart with current date
-  const currentDate = new Date().toLocaleDateString('en-US', {
+  // Generate HTML chart with current date and time
+  const now = new Date();
+  const currentDate = now.toLocaleString('en-US', {
     year: 'numeric',
     month: 'long',
-    day: 'numeric'
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
   });
   const html = generateHTMLChart(data, baselineYearRange, baselineYears, config.MIN_SCORING_USERS, currentDate);
 
