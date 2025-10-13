@@ -211,11 +211,43 @@ function generateHTMLChart(data: YearPercentiles[], baselineYearRange: string, b
             margin-top: 0;
             color: #1976D2;
         }
+        .extension-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            color: white;
+            text-align: center;
+        }
+        .extension-box h3 {
+            margin-top: 0;
+            color: white;
+        }
+        .extension-box a {
+            display: inline-block;
+            background: white;
+            color: #667eea;
+            padding: 12px 24px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: transform 0.2s;
+        }
+        .extension-box a:hover {
+            transform: scale(1.05);
+        }
     </style>
 </head>
 <body>
     <h1>📊 MAL Score Percentiles Over Time</h1>
     <p class="subtitle">Analyzing score inflation trends (Anime with 25k+ scoring users)</p>
+
+    <div class="extension-box">
+        <h3>🔧 Install the Browser Extension</h3>
+        <p>See adjusted scores directly on MyAnimeList while you browse!</p>
+        <a href="https://github.com/EHansonn/mal-score-adjuster/releases/latest" target="_blank">Download Extension</a>
+    </div>
 
     <div class="insight">
         <h3>📈 Key Insights</h3>
