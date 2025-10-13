@@ -83,9 +83,18 @@ function generateTableRows(data: YearPercentiles[], baselineYearRange: string, b
         delta95 > 0 ? `+${delta95.toFixed(2)}` : delta95.toFixed(2);
 
       const isBaseline = baselineYears.includes(row.year);
-      const highlightClass = isBaseline
-        ? 'class="baseline"'
-        : (Math.abs(delta95) > 0.15 ? 'class="highlight"' : "");
+      const absDelta = Math.abs(delta95);
+
+      let highlightClass = "";
+      if (isBaseline) {
+        highlightClass = 'class="baseline"';
+      } else if (absDelta >= 0.4) {
+        highlightClass = 'class="highlight-severe"';
+      } else if (absDelta >= 0.3) {
+        highlightClass = 'class="highlight-high"';
+      } else if (absDelta >= 0.15) {
+        highlightClass = 'class="highlight-medium"';
+      }
 
       return `
                 <tr ${highlightClass}>
@@ -179,8 +188,14 @@ function generateHTMLChart(data: YearPercentiles[], baselineYearRange: string, b
         tr:hover {
             background-color: #f5f5f5;
         }
-        .highlight {
+        .highlight-medium {
+            background-color: #ffe4b3;
+        }
+        .highlight-high {
             background-color: #ffb84d;
+        }
+        .highlight-severe {
+            background-color: #ff6b6b;
         }
         .baseline {
             background-color: #c6f6d5;

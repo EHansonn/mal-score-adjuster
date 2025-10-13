@@ -5,7 +5,6 @@ on:
     branches:
       - main
     paths:
-      - 'README.md'
       - 'output/percentile-visualization.html'
   workflow_dispatch:
 
