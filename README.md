@@ -173,6 +173,44 @@ This is the workflow used by GitHub Actions for automated updates.
 ### Browser Extension
 - `npm run build:extension` - Build the browser extension for distribution
 
+## Testing the Browser Extension
+
+### Testing in Firefox
+
+The extension fetches adjusted scores from the GitHub repository at:
+`https://raw.githubusercontent.com/EHansonn/mal-score-adjuster/main/output/adjusted-scores.json`
+
+1. **Open Firefox's debugging page**:
+   - Navigate to `about:debugging` in Firefox
+   - Click "This Firefox" in the left sidebar
+
+3. **Load the extension temporarily**:
+   - Click "Load Temporary Add-on..."
+   - Navigate to the extension directory: `src/extension/`
+   - Select the `manifest.json` file
+
+4. **Test the extension**:
+   - Visit any anime page on MyAnimeList (e.g., https://myanimelist.net/anime/16498/Shingeki_no_Kyojin)
+   - The adjusted score should appear on the page
+   - The extension automatically fetches the latest adjusted scores from GitHub every 24 hours
+
+5. **View console logs** (optional):
+   - Click "Inspect" next to the extension in `about:debugging`
+   - Check the console for fetch status and any errors
+   - The background script logs show when scores are fetched from GitHub
+
+**Note:** To test with local score data, you would need to modify `src/extension/background.js` to fetch from a local file or development server instead of the GitHub URL.
+
+### Building for Distribution
+
+To create a distributable `.zip` file:
+
+```bash
+npm run build:extension
+```
+
+The extension will be built to the `dist/` directory.
+
 ## Database Schema
 
 The application stores anime data with the following fields:
