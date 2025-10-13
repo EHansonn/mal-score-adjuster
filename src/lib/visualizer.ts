@@ -135,7 +135,7 @@ function generateHTMLChart(data: YearPercentiles[], baselineYearRange: string, b
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAL Score Percentiles Over Time</title>
+    <title>MyAnimeList Score Adjuster</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         body {
@@ -240,7 +240,7 @@ function generateHTMLChart(data: YearPercentiles[], baselineYearRange: string, b
     </style>
 </head>
 <body>
-    <h1>📊 MAL Score Percentiles Over Time</h1>
+    <h1>MyAnimeList Score Adjuster</h1>
     <p class="subtitle">Analyzing score inflation trends (Anime with ${minScoringUsers.toLocaleString()}+ scoring users)</p>
     <p class="subtitle" style="font-size: 0.9em; color: #999;">Baseline Period: ${baselineYearRange} | Last updated: ${generatedDate}</p>
 
