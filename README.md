@@ -119,26 +119,59 @@ Generate Prisma Client:
 npm run db:generate
 ```
 
-### 5. Run the Application
+### 5. Choose Your Workflow
 
+There are two ways to generate adjusted scores:
+
+#### Option A: Using Database (Recommended for Development)
+
+1. **Seed the database** - Fetch anime data from MyAnimeList API and store in PostgreSQL:
 ```bash
-npm run dev
+npm run seed
+```
+
+2. **Generate adjusted scores** - Calculate scores from database data:
+```bash
+npm run main
+```
+
+This workflow allows you to:
+- Store anime data persistently in PostgreSQL
+- Query and analyze data using Prisma Studio (`npm run db:studio`)
+- Rerun calculations without re-fetching from the API
+
+#### Option B: Standalone (No Database Required)
+
+**Generate adjusted scores directly** - Fetch data in-memory and calculate scores:
+```bash
+npm run standalone
 ```
 
 This will:
-1. Fetch top 10 anime from MyAnimeList API
-2. Save the data to PostgreSQL
-3. Display the saved anime from the database
+1. Fetch anime data from MyAnimeList API (in-memory, no database)
+2. Calculate adjusted scores based on the baseline period
+3. Generate `output/adjusted-scores.json`
+4. Generate `output/percentile-visualization.html`
+
+This is the workflow used by GitHub Actions for automated updates.
 
 ## Available Scripts
 
-- `npm run dev` - Run the application in development mode
+### Core Application
+- `npm run seed` - Fetch anime data from MyAnimeList API and store in PostgreSQL database
+- `npm run main` - Calculate adjusted scores using data from the database
+- `npm run standalone` - Fetch data in-memory and generate adjusted scores (no database required)
 - `npm run build` - Compile TypeScript to JavaScript
-- `npm start` - Run the compiled application
+- `npm start` - Run the compiled seed script
+
+### Database Management
 - `npm run db:generate` - Generate Prisma Client
 - `npm run db:push` - Push schema changes to database
 - `npm run db:migrate` - Create and run migrations
 - `npm run db:studio` - Open Prisma Studio to view/edit data
+
+### Browser Extension
+- `npm run build:extension` - Build the browser extension for distribution
 
 ## Database Schema
 
