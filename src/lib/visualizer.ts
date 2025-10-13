@@ -242,7 +242,7 @@ function generateHTMLChart(data: YearPercentiles[], baselineYearRange: string, b
 <body>
     <h1>📊 MAL Score Percentiles Over Time</h1>
     <p class="subtitle">Analyzing score inflation trends (Anime with ${minScoringUsers.toLocaleString()}+ scoring users)</p>
-    <p class="subtitle" style="font-size: 0.9em; color: #999;">Last updated: ${generatedDate}</p>
+    <p class="subtitle" style="font-size: 0.9em; color: #999;">Baseline Period: ${baselineYearRange} | Last updated: ${generatedDate}</p>
 
     <div class="extension-box">
         <h3>🔧 Install the Browser Extension</h3>
