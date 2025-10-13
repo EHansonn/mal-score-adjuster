@@ -221,6 +221,36 @@ async function applyAdjustedScores() {
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', applyAdjustedScores);
 } else {
-
   applyAdjustedScores();
 }
+
+// Watch for dynamic content changes (MAL uses AJAX navigation)
+const observer = new MutationObserver((mutations) => {
+  // Debounce: only run after changes stop for 500ms
+  clearTimeout(window.malScoreAdjusterTimeout);
+  window.malScoreAdjusterTimeout = setTimeout(() => {
+    console.log('[MAL Score Adjuster] Page content changed, re-applying scores...');
+    applyAdjustedScores();
+  }, 500);
+});
+
+// Start observing the document body for changes
+observer.observe(document.body, {
+  childList: true,
+  subtree: true
+});
+
+// Also re-run on URL changes (for SPA navigation)
+let lastUrl = location.href;
+new MutationObserver(() => {
+  const url = location.href;
+  if (url !== lastUrl) {
+    lastUrl = url;
+    console.log('[MAL Score Adjuster] URL changed, re-applying scores...');
+    setTimeout(applyAdjustedScores, 500);
+  }
+}).observe(document.querySelector('head > title'), {
+  subtree: true,
+  characterData: true,
+  childList: true
+});

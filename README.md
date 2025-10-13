@@ -1,6 +1,6 @@
 # MAL Score Adjuster
 
-A TypeScript application to fetch anime ranking data from MyAnimeList API, and to calculate adjusted rankings and ratings.
+A TypeScript application to fetch anime ranking data from MyAnimeList API, and to calculate adjusted rankings and ratings, and a FireFox extension to show that data.
 
 Calculated output should be stored in `output/adjusted-scores.json`
 
