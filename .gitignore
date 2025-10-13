@@ -9,3 +9,5 @@ output/*-adjusted-scores-*.txt
 # Keep the JSON for GitHub
 !output/adjusted-scores.json
 !output/percentile-visualization.html
+
+.claude
