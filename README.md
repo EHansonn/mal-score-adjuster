@@ -13,6 +13,11 @@ Mainly just a proof of concept demo I'm playing around with. For example in 2013
 
 I made this in like an hour, the prisma stuff was just reused from an old project, the other half of the code was vibe coded 🤦 I just wanted a proof of concept!
 
+
+
+See how the scores are modified [https://ehansonn.github.io/mal-score-adjuster/output/percentile-visualization.html](https://ehansonn.github.io/mal-score-adjuster/output/percentile-visualization.html)
+
+
 ## Setup
 
 ### 1. Install Dependencies
