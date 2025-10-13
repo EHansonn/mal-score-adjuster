@@ -3,6 +3,9 @@
  * Refactored for better maintainability and readability
  */
 
+console.log('[MAL Score Adjuster] Content script loaded');
+
+
 // Constants
 const COLORS = {
   NEUTRAL: '#999',
@@ -170,20 +173,27 @@ function processDetailScore(adjustedScores) {
  */
 async function applyAdjustedScores() {
   try {
+    console.log('[MAL Score Adjuster] Requesting adjusted scores...');
     const adjustedScores = await browser.runtime.sendMessage({ type: "getAdjustedScores" });
 
+    console.log('[MAL Score Adjuster] Received data:', await adjustedScores);
+
     if (!adjustedScores?.anime) {
-      console.warn('No adjusted scores data available');
+      console.warn('[MAL Score Adjuster] No adjusted scores data available');
       return;
     }
+
+    console.log('[MAL Score Adjuster] Total anime scores available:', Object.keys(adjustedScores.anime).length);
 
     // Process different page types
     processAnimeBlocks(adjustedScores);
     processRankingRows(adjustedScores);
     processDetailScore(adjustedScores);
 
+    console.log('[MAL Score Adjuster] Scores applied successfully');
+
   } catch (error) {
-    console.error('Error applying adjusted scores:', error);
+    console.error('[MAL Score Adjuster] Error applying adjusted scores:', error);
   }
 }
 
@@ -191,5 +201,6 @@ async function applyAdjustedScores() {
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', applyAdjustedScores);
 } else {
+
   applyAdjustedScores();
 }
