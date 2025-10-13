@@ -27,9 +27,8 @@ jobs:
 
       - name: Generate adjusted scores
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           MAL_SECRET: ${{ secrets.MAL_SECRET }}
-        run: npx ts-node src/generate-adjusted-scores.ts
+        run: npx ts-node src/generate-adjusted-scores-standalone.ts
 
       - name: Check if scores changed
         id: check_changes
