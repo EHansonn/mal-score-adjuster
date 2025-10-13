@@ -97,6 +97,11 @@
         <canvas id="percentilesChart"></canvas>
     </div>
 
+    <div class="chart-container">
+        <h2>🔍 95th Percentile Trend (1995+)</h2>
+        <canvas id="inflationChart"></canvas>
+    </div>
+
     <div class="stats-table">
         <h2>📋 Detailed Percentile Data by Year</h2>
         <table>
@@ -111,7 +116,7 @@
                     <th>95th</th>
                     <th>99th</th>
                     <th>Max</th>
-                    <th>95th Δ from 2010</th>
+                    <th>95th Δ from 2005-2013</th>
                 </tr>
             </thead>
             <tbody>
@@ -236,7 +241,7 @@
                     <td>8.89</td>
                     <td><strong>+0.07</strong></td>
                 </tr>
-                <tr class="highlight-medium">
+                <tr class="baseline">
                     <td><strong>2005</strong></td>
                     <td>96</td>
                     <td>2.23</td>
@@ -248,7 +253,7 @@
                     <td>8.65</td>
                     <td><strong>-0.20</strong></td>
                 </tr>
-                <tr >
+                <tr class="baseline">
                     <td><strong>2006</strong></td>
                     <td>122</td>
                     <td>5.41</td>
@@ -260,7 +265,7 @@
                     <td>8.93</td>
                     <td><strong>-0.04</strong></td>
                 </tr>
-                <tr >
+                <tr class="baseline">
                     <td><strong>2007</strong></td>
                     <td>134</td>
                     <td>5.45</td>
@@ -272,7 +277,7 @@
                     <td>8.64</td>
                     <td><strong>+0.03</strong></td>
                 </tr>
-                <tr >
+                <tr class="baseline">
                     <td><strong>2008</strong></td>
                     <td>149</td>
                     <td>5.52</td>
@@ -284,7 +289,7 @@
                     <td>8.93</td>
                     <td><strong>-0.01</strong></td>
                 </tr>
-                <tr >
+                <tr class="baseline">
                     <td><strong>2009</strong></td>
                     <td>155</td>
                     <td>4.72</td>
@@ -306,9 +311,9 @@
                     <td><strong>8.22</strong></td>
                     <td>8.55</td>
                     <td>8.59</td>
-                    <td><strong>0.00</strong></td>
+                    <td><strong>-0.00</strong></td>
                 </tr>
-                <tr >
+                <tr class="baseline">
                     <td><strong>2011</strong></td>
                     <td>195</td>
                     <td>5.33</td>
@@ -320,7 +325,7 @@
                     <td>9.07</td>
                     <td><strong>+0.09</strong></td>
                 </tr>
-                <tr >
+                <tr class="baseline">
                     <td><strong>2012</strong></td>
                     <td>217</td>
                     <td>2.79</td>
@@ -332,7 +337,7 @@
                     <td>9.02</td>
                     <td><strong>+0.07</strong></td>
                 </tr>
-                <tr >
+                <tr class="baseline">
                     <td><strong>2013</strong></td>
                     <td>227</td>
                     <td>3.36</td>
@@ -584,6 +589,77 @@
                         beginAtZero: false,
                         min: 6.5,
                         max: 10,
+                        title: {
+                            display: true,
+                            text: 'Score'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Year'
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            }
+        });
+
+        // Second chart: Focused inflation trends (2010+)
+        const inflationData = {
+            labels: [1995,1996,1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025],
+            p95: [8.31,8.18,8.67,8.55,8.69,8.04,8.11,8.24,8.25,8.29,8.02,8.18,8.25,8.21,8.32,8.22,8.31,8.29,8.2,8.27,8.23,8.34,8.31,8.41,8.42,8.53,8.5,8.62,8.44,8.61,8.65]
+        };
+
+        // Use all data from 1995 onwards (same as main chart)
+        const startIndex = 0;
+        const filteredYears = inflationData.labels.slice(startIndex);
+        const filtered95 = inflationData.p95.slice(startIndex);
+
+        const ctx2 = document.getElementById('inflationChart').getContext('2d');
+
+        const inflationChart = new Chart(ctx2, {
+            type: 'line',
+            data: {
+                labels: filteredYears,
+                datasets: [
+                    {
+                        label: '95th Percentile',
+                        data: filtered95,
+                        borderColor: 'rgb(168, 85, 247)',
+                        backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                        borderWidth: 4,
+                        tension: 0.1,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '95th Percentile Trend (1995-Present)',
+                        font: {
+                            size: 16
+                        }
+                    },
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
                         title: {
                             display: true,
                             text: 'Score'

@@ -229,6 +229,11 @@ function generateHTMLChart(data: YearPercentiles[], baselineYearRange: string, b
         <canvas id="percentilesChart"></canvas>
     </div>
 
+    <div class="chart-container">
+        <h2>🔍 95th Percentile Trend (1995+)</h2>
+        <canvas id="inflationChart"></canvas>
+    </div>
+
     <div class="stats-table">
         <h2>📋 Detailed Percentile Data by Year</h2>
         <table>
@@ -344,6 +349,77 @@ function generateHTMLChart(data: YearPercentiles[], baselineYearRange: string, b
                         beginAtZero: false,
                         min: ${yAxisMin},
                         max: ${yAxisMax},
+                        title: {
+                            display: true,
+                            text: 'Score'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Year'
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            }
+        });
+
+        // Second chart: Focused inflation trends (2010+)
+        const inflationData = {
+            labels: ${JSON.stringify(years)},
+            p95: ${JSON.stringify(p95Data)}
+        };
+
+        // Use all data from 1995 onwards (same as main chart)
+        const startIndex = 0;
+        const filteredYears = inflationData.labels.slice(startIndex);
+        const filtered95 = inflationData.p95.slice(startIndex);
+
+        const ctx2 = document.getElementById('inflationChart').getContext('2d');
+
+        const inflationChart = new Chart(ctx2, {
+            type: 'line',
+            data: {
+                labels: filteredYears,
+                datasets: [
+                    {
+                        label: '95th Percentile',
+                        data: filtered95,
+                        borderColor: 'rgb(168, 85, 247)',
+                        backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                        borderWidth: 4,
+                        tension: 0.1,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '95th Percentile Trend (1995-Present)',
+                        font: {
+                            size: 16
+                        }
+                    },
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
                         title: {
                             display: true,
                             text: 'Score'

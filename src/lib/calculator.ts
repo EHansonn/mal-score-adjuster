@@ -26,8 +26,8 @@ export interface CalculatorConfig {
 // Default configuration
 export const DEFAULT_CONFIG: CalculatorConfig = {
   MIN_SCORING_USERS: 10000,
-  BASELINE_START_YEAR: 2010,
-  BASELINE_END_YEAR: 2010,
+  BASELINE_START_YEAR: 2005,
+  BASELINE_END_YEAR: 2013,
 };
 
 export interface AnimeData {
