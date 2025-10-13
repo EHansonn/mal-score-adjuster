@@ -15,7 +15,7 @@ I made this in like an hour, the prisma stuff was just reused from an old projec
 
 
 
-See how the scores are modified [https://ehansonn.github.io/mal-score-adjuster/output/percentile-visualization.html](https://ehansonn.github.io/mal-score-adjuster/output/percentile-visualization.html)
+See how the scores are modified [https://ehansonn.github.io/mal-score-adjuster/](https://ehansonn.github.io/mal-score-adjuster/)
 
 ## How It Works
 
