@@ -1,6 +1,17 @@
 # MAL Score Adjuster
 
-A TypeScript application to fetch anime ranking data from MyAnimeList API and store it in PostgreSQL using Prisma.
+A TypeScript application to fetch anime ranking data from MyAnimeList API, and to calculate adjusted rankings and ratings.
+
+Calculated output should be stored in `output/adjusted-scores.json`
+
+
+I believe that anime ratings on MAL, over time, has become inflated. For example a show that recieves an 8.5/10 in 2025 probably would of gotten a 7-7.5/10 a decade earlier.
+
+Mainly just a proof of concept demo i'm playing around with. For example in 2013, Attack On Titan, recived around an 8.56. It had an insane budget, with increadible animation, and a unique story. Now compare it with any show that recieved above an 8.5 rating in 2025. Theres no comparison in my mind which show should have a higher rating. Don't take it too seriously! Whatever results this shows is 100% biased towards my opinions and most likely not realistic.
+
+
+
+I made this in like an hour, the prisma stuff was just reused from an old project, the other half of the code was vibe coded 🤦 I just wanted a proof of concept!
 
 ## Setup
 

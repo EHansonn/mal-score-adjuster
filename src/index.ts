@@ -10,8 +10,16 @@ const prisma = new PrismaClient();
 
 // Configuration for outlier filtering
 const MIN_SCORING_USERS = 25000; // Minimum number of users who scored the anime
-const BASELINE_START_YEAR = 2004; // Start of baseline period
-const BASELINE_END_YEAR = 2016; // End of baseline period
+const BASELINE_START_YEAR = 2012; // Start of baseline period (what scores should represent)
+const BASELINE_END_YEAR = 2014; // End of baseline period
+
+// Hard caps based on actual baseline percentiles from visualization
+// 2012-2014 average: 95th = 8.29, 99th = 8.69, max = 8.88
+const PERCENTILE_CAPS = {
+  95: 8.29,  // 95th percentile cap
+  99: 8.69,  // 99th percentile cap
+  100: 8.88  // Absolute maximum
+};
 
 interface YearStats {
   year: number;
@@ -28,6 +36,7 @@ interface AnimeWithAdjustedScore {
   rank: number;
   originalScore: number;
   adjustedScore: number;
+  adjustedRank?: number;
   startYear: number | null;
   numScoringUsers: number;
   scoreDifference: number;
@@ -138,7 +147,8 @@ async function calculateAdjustedScores(
   yearStatsMap: Map<number, YearStats>,
   baselineScores: number[]
 ): Promise<AnimeWithAdjustedScore[]> {
-  console.log("\n=== Calculating Adjusted Scores (Percentile-Based) ===\n");
+  console.log("\n=== Calculating Adjusted Scores (Percentile Rescaling) ===\n");
+  console.log("Logic: Find percentile rank in release year, then map to that percentile's score in baseline period\n");
 
   const sortedBaselineScores = baselineScores.slice().sort((a, b) => a - b);
 
@@ -165,40 +175,43 @@ async function calculateAdjustedScores(
 
   for (const anime of animes) {
     let adjustedScore = anime.mean;
+    let percentileInYear = 50; // default
 
-    // Apply percentile-based adjustment if we have stats for this year
+    // Step 1: Find what percentile this anime is in its release year
     if (anime.startYear && yearStatsMap.has(anime.startYear)) {
       const yearStats = yearStatsMap.get(anime.startYear)!;
-
-      // Find what percentile this score is in its year
-      const percentileInYear = calculatePercentile(yearStats.scores, anime.mean);
-
-      // Find what score that percentile corresponds to in baseline period
-      adjustedScore = getScoreAtPercentile(sortedBaselineScores, percentileInYear);
+      percentileInYear = calculatePercentile(yearStats.scores, anime.mean);
     } else if (anime.startYear) {
-      // For years outside our statistics range (too old or too new with insufficient data),
-      // estimate percentile based on score and use baseline distribution
-
-      // Assume a normal distribution centered around the score range
-      // Map the score to an estimated percentile
-      const minScore = 1.0;
-      const maxScore = 10.0;
-      const normalizedScore = (anime.mean - minScore) / (maxScore - minScore);
-
-      // Use a sigmoid-like function to estimate percentile (most scores cluster in middle)
-      // High scores (8-10) should map to high percentiles (80-100%)
-      let estimatedPercentile: number;
+      // For years without data, estimate percentile from the score itself
+      // This assumes the score distribution follows a similar pattern
       if (anime.mean >= 8.5) {
-        estimatedPercentile = 80 + ((anime.mean - 8.5) / 1.5) * 20;
+        percentileInYear = 85 + ((anime.mean - 8.5) / 1.5) * 15;
+      } else if (anime.mean >= 8.0) {
+        percentileInYear = 70 + ((anime.mean - 8.0) / 0.5) * 15;
       } else if (anime.mean >= 7.5) {
-        estimatedPercentile = 50 + ((anime.mean - 7.5) / 1.0) * 30;
+        percentileInYear = 50 + ((anime.mean - 7.5) / 0.5) * 20;
+      } else if (anime.mean >= 7.0) {
+        percentileInYear = 30 + ((anime.mean - 7.0) / 0.5) * 20;
       } else if (anime.mean >= 6.5) {
-        estimatedPercentile = 25 + ((anime.mean - 6.5) / 1.0) * 25;
+        percentileInYear = 15 + ((anime.mean - 6.5) / 0.5) * 15;
       } else {
-        estimatedPercentile = (anime.mean / 6.5) * 25;
+        percentileInYear = (anime.mean / 6.5) * 15;
       }
+    }
 
-      adjustedScore = getScoreAtPercentile(sortedBaselineScores, estimatedPercentile);
+    // Step 2: Map that percentile to the baseline period's score distribution
+    // This is the key: a 95th percentile anime in 2024 gets the score that
+    // represented 95th percentile in 2012-2014
+    adjustedScore = getScoreAtPercentile(sortedBaselineScores, percentileInYear);
+
+    // Step 3: Apply hard caps based on actual baseline percentiles
+    // This ensures scores don't exceed what was possible in the baseline period
+    if (percentileInYear >= 99) {
+      // Top 1% - cap at 99th percentile or max
+      adjustedScore = Math.min(adjustedScore, PERCENTILE_CAPS[100]);
+    } else if (percentileInYear >= 95) {
+      // Top 5% - cap at 95th percentile
+      adjustedScore = Math.min(adjustedScore, PERCENTILE_CAPS[95]);
     }
 
     results.push({
@@ -340,6 +353,44 @@ async function main() {
     // Step 2.5: Write results to file
     writeResultsToFile(yearStatsMap, adjustedAnimes);
 
+    // Step 2.6: Save adjusted scores to database
+    console.log("\n=== Saving Adjusted Scores to Database ===\n");
+
+    // Sort by adjusted score to get adjusted rankings
+    const sortedByAdjusted = adjustedAnimes
+      .slice()
+      .sort((a, b) => b.adjustedScore - a.adjustedScore);
+
+    // Assign adjusted ranks
+    sortedByAdjusted.forEach((anime, index) => {
+      anime.adjustedRank = index + 1;
+    });
+
+    // Update database in batches
+    let updated = 0;
+    const batchSize = 100;
+
+    for (let i = 0; i < adjustedAnimes.length; i += batchSize) {
+      const batch = adjustedAnimes.slice(i, i + batchSize);
+
+      await Promise.all(
+        batch.map((anime) =>
+          prisma.anime.update({
+            where: { id: anime.id },
+            data: {
+              adjustedScore: anime.adjustedScore,
+              adjustedRank: anime.adjustedRank,
+            },
+          })
+        )
+      );
+
+      updated += batch.length;
+      console.log(`Updated ${updated}/${adjustedAnimes.length} anime...`);
+    }
+
+    console.log(`\n✓ Successfully saved adjusted scores and ranks to database!`);
+
     // Step 3: Display top 200 by original MAL rank
     console.log("\n\n=== Top 200 Anime: Original vs Adjusted Scores ===\n");
     console.log("Rank | Title (Year) | Original | Adjusted | Diff | Users");
@@ -361,11 +412,7 @@ async function main() {
       );
     }
 
-    // Step 4: Sort by adjusted score and show new top 50
-    const sortedByAdjusted = adjustedAnimes
-      .slice()
-      .sort((a, b) => b.adjustedScore - a.adjustedScore);
-
+    // Step 4: Display top 50 by adjusted score (using already sorted data)
     console.log("\n\n=== Top 50 by ADJUSTED Score (New Rankings) ===\n");
     console.log("New | Old  | Title (Year) | Original | Adjusted | Diff");
     console.log("----|------|--------------|----------|----------|------");

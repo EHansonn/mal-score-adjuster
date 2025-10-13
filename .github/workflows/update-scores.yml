@@ -1,0 +1,54 @@
+name: Update Adjusted Scores
+
+on:
+  schedule:
+    # Run every Sunday at 00:00 UTC
+    - cron: '0 0 * * 0'
+
+  # Allow manual triggering
+  workflow_dispatch:
+
+jobs:
+  update-scores:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate adjusted scores
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          MAL_SECRET: ${{ secrets.MAL_SECRET }}
+        run: npx ts-node src/generate-adjusted-scores.ts
+
+      - name: Check if scores changed
+        id: check_changes
+        run: |
+          if git diff --quiet output/adjusted-scores.json; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push changes
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add output/adjusted-scores.json
+          git commit -m "Update adjusted scores - $(date +'%Y-%m-%d')"
+          git push
+
+      - name: No changes detected
+        if: steps.check_changes.outputs.changed == 'false'
+        run: echo "No changes in adjusted scores, skipping commit"

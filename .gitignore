@@ -1,4 +1,12 @@
 node_modules/
 dist/
 .env
-output/
+
+# Output files - but keep adjusted-scores.json for extension
+output/*.txt
+output/*-adjusted-scores-*.txt
+output/percentile-visualization.html
+
+# Keep the JSON for GitHub
+!output/adjusted-scores.json
+!output/percentile-visualization.html

@@ -23,6 +23,8 @@ model Anime {
   popularity       Int
   status           String
   rank             Int
+  adjustedScore    Float?   @map("adjusted_score")
+  adjustedRank     Int?     @map("adjusted_rank")
   startSeason      String?  @map("start_season")
   startYear        Int?     @map("start_year")
   createdAt        DateTime @default(now()) @map("created_at")
@@ -31,6 +33,8 @@ model Anime {
   @@map("anime")
   @@index([rank])
   @@index([mean])
+  @@index([adjustedScore])
+  @@index([adjustedRank])
   @@index([popularity])
   @@index([startYear])
 }
