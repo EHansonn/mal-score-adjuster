@@ -5,6 +5,7 @@ import type { AnimeData, CalculatorConfig } from "./calculator";
 interface YearPercentiles {
   year: number;
   count: number;
+  min: number;
   p50: number; // Median
   p75: number;
   p90: number;
@@ -52,6 +53,7 @@ export function analyzePercentilesByYear(
     results.push({
       year,
       count: scores.length,
+      min: scores[0],
       p50: calculatePercentile(scores, 50),
       p75: calculatePercentile(scores, 75),
       p90: calculatePercentile(scores, 90),
@@ -79,13 +81,17 @@ function generateTableRows(data: YearPercentiles[], baselineYearRange: string, b
       const delta95 = row.p95 - baseline95th;
       const deltaStr =
         delta95 > 0 ? `+${delta95.toFixed(2)}` : delta95.toFixed(2);
-      const highlightClass =
-        Math.abs(delta95) > 0.3 ? 'class="highlight"' : "";
+
+      const isBaseline = baselineYears.includes(row.year);
+      const highlightClass = isBaseline
+        ? 'class="baseline"'
+        : (Math.abs(delta95) > 0.15 ? 'class="highlight"' : "");
 
       return `
                 <tr ${highlightClass}>
                     <td><strong>${row.year}</strong></td>
                     <td>${row.count}</td>
+                    <td>${row.min.toFixed(2)}</td>
                     <td>${row.p50.toFixed(2)}</td>
                     <td>${row.p75.toFixed(2)}</td>
                     <td>${row.p90.toFixed(2)}</td>
@@ -100,12 +106,20 @@ function generateTableRows(data: YearPercentiles[], baselineYearRange: string, b
 
 function generateHTMLChart(data: YearPercentiles[], baselineYearRange: string, baselineYears: number[]): string {
   const years = data.map((d) => d.year);
+  const minData = data.map((d) => d.min);
   const p50Data = data.map((d) => d.p50);
   const p75Data = data.map((d) => d.p75);
   const p90Data = data.map((d) => d.p90);
   const p95Data = data.map((d) => d.p95);
   const p99Data = data.map((d) => d.p99);
   const maxData = data.map((d) => d.max);
+
+  // Calculate dynamic y-axis range with 0.5 padding, rounded to 0.5 intervals
+  const allScores = [...p50Data, ...p75Data, ...p90Data, ...p95Data, ...p99Data, ...maxData];
+  const minScore = Math.min(...allScores);
+  const maxScore = Math.max(...allScores);
+  const yAxisMin = Math.max(0, Math.floor((minScore - 0.5) * 2) / 2);
+  const yAxisMax = Math.min(10, Math.ceil((maxScore + 0.5) * 2) / 2);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -166,7 +180,10 @@ function generateHTMLChart(data: YearPercentiles[], baselineYearRange: string, b
             background-color: #f5f5f5;
         }
         .highlight {
-            background-color: #fff3cd;
+            background-color: #ffb84d;
+        }
+        .baseline {
+            background-color: #c6f6d5;
         }
         .insight {
             background: #e7f3ff;
@@ -204,6 +221,7 @@ function generateHTMLChart(data: YearPercentiles[], baselineYearRange: string, b
                 <tr>
                     <th>Year</th>
                     <th>Count</th>
+                    <th>Min</th>
                     <th>50th (Median)</th>
                     <th>75th</th>
                     <th>90th</th>
@@ -274,6 +292,16 @@ function generateHTMLChart(data: YearPercentiles[], baselineYearRange: string, b
                         backgroundColor: 'rgba(107, 114, 128, 0.1)',
                         borderWidth: 2,
                         tension: 0.1
+                    },
+                    {
+                        label: 'Min Score',
+                        data: ${JSON.stringify(minData)},
+                        borderColor: 'rgba(139, 92, 246, 0)',
+                        backgroundColor: 'rgba(139, 92, 246, 0)',
+                        borderWidth: 0,
+                        pointRadius: 0,
+                        pointHoverRadius: 0,
+                        tension: 0.1
                     }
                 ]
             },
@@ -299,8 +327,8 @@ function generateHTMLChart(data: YearPercentiles[], baselineYearRange: string, b
                 scales: {
                     y: {
                         beginAtZero: false,
-                        min: 6,
-                        max: 10,
+                        min: ${yAxisMin},
+                        max: ${yAxisMax},
                         title: {
                             display: true,
                             text: 'Score'
